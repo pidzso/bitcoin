@@ -90,46 +90,72 @@ By default the PeerGroup and Wallet will work together to calculate and upload B
 
 Bloom filters can be noisy. A noisy filter is one that matches more keys or addresses than are actually in your wallet. Noise is intentional and serves to protect your wallet privacy - a remote node can't know if a matched transaction is really yours or not. In theory, wallet keys/addresses could be split up across each connected node for even more privacy. Essentially it's a bandwidth vs privacy tradeoff - a higher FP rate confuses remote eavesdroppers more, but you have to download more useless data as a result.
 
+% Mivel mi DHT-t használunk, ezért Bloom filtert használni arra, hogy a sajátjaidon kívül más tranzakciót is eltárolj nem lehetséges, mivel a DHT elég jól meghatározza, hogy pontosan milyen ranzakciókat tárolj el. Egy ilyen Bloom filter esetén a többi node nem tudná hogy kinél keressen egy adott tranzakciót, mindenkit végig kéne kérdezni. arra viszont, hogy a saját tranzakcióinkat eltároljuk hasznos lehet, mert gondolom gyorsabb ezzel ellenőrizni mondjuk egy blokk kihirdetésénél hogy benne van-e a mienk. viszont adhat false pozitívta, de ez sem baj, mert akkor eltárolunk még pluszba néhány random tranzakciót, ez nem fogja befolyásolni a rendszer működését.
 
 
 \subsection{}
-The solution is based on distributed hash tables. Nodes stores their own transaction plus some other transaction.
+Nodes operating this way can form a system that stores each transaction of the network and doesn't rely on other nodes to verify the integrity of transactions they are interested in.
 
-A distributed hash table (DHT) is a class of a decentralized distributed system that provides a lookup service similar to a hash table; (key, value) pairs are stored in a DHT, and any participating node can efficiently retrieve the value associated with a given key. Responsibility for maintaining the mapping from keys to values is distributed among the nodes, in such a way that a change in the set of participants causes a minimal amount of disruption. This allows a DHT to scale to extremely large numbers of nodes and to handle continual node arrivals, departures, and failures.
+Each node stores transactions that concern the accounts that are controlled by their operators. Furthermore, they store some other transaction, so an eavsdropper won't be able to decide which transaction (public key) belongs to the node. If there's a sufficiently large number of simplified nodes in the network, they will be able to store every bitcoin transaction. If a node needs some information on a specific transaction, it will send a request to the node that stores this transaction, and that node will reply with the requested information.
 
-Key space partitioning: 
+The main question is how to distribute the transactions among the nodes in a way they can easily find which node stores which transactions.
+The solution is based on distributed hash tables. 
 
-Each node has an id. It stores the transactions wich ?public key? is closest to this id
+A distributed hash table (DHT) is a class of a decentralized distributed system that provides a lookup service similar to a hash table; (key, value) pairs are stored in a DHT, and any participating node can efficiently retrieve the value associated with a given key. Responsibility for maintaining the mapping from keys to values is distributed among the nodes, in such a way that a change in the set of participants causes a minimal amount of disruption. This allows a DHT to scale to extremely large numbers of nodes and to handle continual node arrivals, departures, and failures. DHT forms an infrastructure that can be used to form peer-to-peer content distribution.
 
-szóval itt ki kéne találni h mi legyen az id-ja a node-oknak és hogy a tranzakciókat mi alapján rendeljük hozzá. pl lehetne a tranzakciót a hash-e alapján hozzárendelni egy node-hoz- ez esetben akkor a node id-ja is egy random 32 bites szám kéne hogy legyen. itt a következő a problémám: ha valaki megfigyeli egy node forgalmát (h milyen tranzakciókat tárol el) akkor mivel nem csak a sajátját tárolja el nem tudja h mik az ő tranzakciói. de a tarnzakciók azonosítójából ki tudja szűrni h azt a node azért tárolta-e el mert közel van az id-jéhez vagy mert az övé a tranzakció. erre ugye megoldás lenne h a node nem hozza nyilvánosságra az id-jét, de ekkor a későbbiekben leírt routingot nem lehetne megvalósítani... 
+In this network the hash of a transaction will play the role of the key, and the raw transaction will be the value. When there's a new transaction, each node forwards it through the network until it reaches the node responsible for it. That node then stores the transaction. Another node can retrieve this transaction by sending a request message with the hash of the transaction. This message is forwarded by the other nodes, until it reaches the node that stores the transaction. This node will reply with the raw transaction.
 
-easy to add new nodes
+% itt azt nem tudom, hogy ha egy node-nek kell egy raw tranzakció, akkor azt mi alapján tudja lekérni. pl lehet h a hashét pont nem tudja, csak más adatokat róla... na most itt lehetséges-e nem hash alapján keresni? hát sztem nem nagyon... bár egy node-ot nyilván az ő tranzakciói érdeklik, amiről tud minden adatot, csak azt nem hogy benne van-emár egy blokkban. ez esetben csak emiatt akar körbeérdeklődni a tranzakcióról, és ekkor tudja ezt a hash-el csinálni. de más esetekben nem tudom hogy kéne 
 
-az id alapján az új node-ok tudni fogják h milyen tranzakciókat tároljanak, és a broadcastolják az id-jukat amikor belépnek a networkbe, akkor a többi node is tudni fogja h ha van esetleg egy tranzakció amit korábban ő tárolt volna, az most már az új node-hoz közelebb van. de ha egy tranzakiót ketten is eltárolnak abból sincs semmi baj
+We need to define how to partition the keyspace and find a proper routing protocol.
+
+
+\subsection{Key space partitioning}
+
+We need to map the hash of transactions to some node id.
+
+Nodes identify themselves and find another nodes by their IP addresses. They store the IP addresses of nodes they previously connected to in their local peers.dat file. So the simplest way is to use IP addresses as node ids in the keyspace partitioning.
+
+A transaction hash is a 32 bytes hexadecimal number, we need to map them to IP addresses. An easy way is to calculate the SHA256 hash of the IP addresses, and the node with the closest hash value to the transaction hash will store the transaction.
+
+Since values of a hash function are uniformly distributed, node ids will be uniformly distributed in the keyspace. It implies that nodes will have to store the about same amount of transactions.
+
+ %itt a következő a problémám: ha valaki megfigyeli egy node forgalmát (h milyen tranzakciókat tárol el) akkor mivel nem csak a sajátját tárolja el nem tudja h mik az ő tranzakciói. de a tarnzakciók azonosítójából ki tudja szűrni h azt a node azért tárolta-e el mert közel van az id-jéhez vagy mert az övé a tranzakció. erre ugye megoldás lenne h a node nem hozza nyilvánosságra az id-jét, de ekkor a későbbiekben leírt routingot nem lehetne megvalósítani... vagy persze egymás között eltitkosítva küldözgetnek üzenetet, gondolom ez amúgy is így van, de... hát szóval ez megint csak problémákat vet fel
+
+If a new node is added to the network, as soon as it starts communicating with other nodes it will know which transactions it should store. It is possible that another node with an id close to this new node will only recognise this node later. In this case some transactions may be stored by both of them, but it's only  little overhead.
+
+% az id alapján az új node-ok tudni fogják h milyen tranzakciókat tároljanak, és a broadcastolják az id-jukat amikor belépnek a networkbe, akkor a többi node is tudni fogja h ha van esetleg egy tranzakció amit korábban ő tárolt volna, az most már az új node-hoz közelebb van. de ha egy tranzakiót ketten is eltárolnak abból sincs semmi baj. viszont a régebben eltárolt tranzakciók esete még mindig bajos, ugyanis azokat nem küldik át az új node-nak ha az új rendszer alapján már hozzá tartozna. bár ezek a kérdések sztem a legtöbb DHT-nál felmerülnek, úgyhoy lehet hogy elegendő lenne egynek mélyebben utánanézni
+
+
+\subsection{Routing protocol}
+
+A suitable routing protocol is necessary for forwarding and requesting transactions.
+
+A node can send messages to nodes whose IP address is known to it (stored in its local peers.dat). For these nodes it can calculate their id (hash of IP address).
+
+If a new transcation arrives in the system 
 
 easy to find a transaction (send message to a node whose id is closer to the transactions key than yours and so on, and it comes back the same way. here we need some proper routing protocol ->crypto prot)
 
-szóval itt egy routing protocol-lal utánaérdeklődik egy adott node egy tranzakciónak. ha nem is tudja minden másik node id-ját, elküld egy requset üzenetet egy node-nek akinek az id-ja közelebb van a tranzakcióhoz, és az megint továbbítja egy olyannak aki még közelebb van, mígnem el nem ér ahhoz akinél van a message. itt ugye szükséges h a node-ok egy összefüggő gráfot alkossanak (az élek azt jelölöik akinek az id-ját ismered), erre akkor kell valami feltétel h hány szomszédja legyen egynek. vagy valami ilyesmi. az is kérdéses, hogy itt mi alapján definiálunk egy szomszédot. mivel broadcast communication van, logikus lenne h a hozzá közeliek a szomszédok, de mivel ezt az alkalmazást pl smartphonokra cináljuk, azoknak a helyzete változik.
+%szóval itt egy routing protocol-lal utánaérdeklődik egy adott node egy tranzakciónak. ha nem is tudja minden másik node id-ját, elküld egy requset üzenetet egy node-nek akinek az id-ja közelebb van a tranzakcióhoz, és az megint továbbítja egy olyannak aki még közelebb van, mígnem el nem ér ahhoz akinél van a message. itt ugye szükséges h a node-ok egy összefüggő gráfot alkossanak (az élek azt jelölöik akinek az id-ját ismered), erre akkor kell valami feltétel h hány szomszédja legyen egynek. vagy valami ilyesmi. az is kérdéses, hogy itt mi alapján definiálunk egy szomszédot. mivel broadcast communication van, logikus lenne h a hozzá közeliek a szomszédok, de mivel ezt az alkalmazást pl smartphonokra cináljuk, azoknak a helyzete változik.
 
-all transaction are stored in such a decentraliezd network, nodes store their own transaction plus some transactions that are close to them, if they need data of a transaction they send routing messages to other nodes that can sore that specific transaction. each node stores the block headers
 
-when broadcasting a transaction a node stores the ones that belong to him or that are close to him. when broadcasting a block each node checks the transactions in it and stores merkel branches of the previously stored transactions
+when broadcasting a transaction a node stores the ones that belong to him or that are close to him. when broadcasting a block each node checks the transactions in it and stores merkel branches of the previously stored transactions. since nodes stores all the block headers, with the merkel branch hey ca verify a transaction
 
-szerintem ha mindenki eltárolja az összes block header-t és az összes tranzakció valahol a networkben el van mentve, akkor ezzel tudnak verifikálni mindent, és megvalósul a decentralizáltság. ellenvetéseket várok.. :)
+%szerintem ha mindenki eltárolja az összes block header-t és az összes tranzakció valahol a networkben el van mentve, akkor ezzel tudnak verifikálni mindent, és megvalósul a decentralizáltság. ellenvetéseket várok.. :)
 
-plusz még kérdéses: DHT-t használunk, de akkor ehhez kell a bloom filter? valahogy a bloom filter fogja egvalósítani ezt a dht-s elrendezést? végülis ha a bloom filter minden tranzakcióhoz hozzárendel egyértelműen valami értéket, és azt nézi meg h közel van-e a node-hoz, akkor egy attacker a tranzakciók hash-ét hiába nézi, nem tudja h a node csak azért választotta mert közeli vagy mert az övé.
 
 \subsection{}
-First step: the DHT method works only if there's a sufficiently large network of these simplified clients. Until that time the clients will work as follows: from the creation of the wallet they check every broadcast message wheter it contains a transaction they are interested in. If there's no such transaction, they drop the message. After a transaction they're interested in is broadcasted, they start to check the generated blocks wheter it cointains taht transaction or not. With this method they can verify a transaction. If a transaction is stored in a block the simplified wallet stores the corresponding merkel branch.
+First step: the DHT method works only if there's a sufficiently large network of these simplified clients. Until that time the clients will work as follows: from the creation of the wallet they check every broadcast message wheter it contains a transaction they are interested in. If there's no such transaction, they drop the message. After a transaction they're interested in is broadcasted, they start to check the generated blocks wheter it cointains that transaction or not. With this method they can verify a transaction. If a transaction is stored in a block the simplified wallet stores the corresponding Merkel branch.
 
 Nodes can store some other transactions as well so that attackers won't know which transactions belong to them.
 
-Nos ezt nem tudom h mennyire működik így jól, de lényegében a bitcoinj is ezt csinálja, szóval szerintem elfogadható
+%Nos ezt nem tudom h mennyire működik így jól, de lényegében a bitcoinj is ezt csinálja, szóval szerintem elfogadható
 
 \subsection{}
 Further problems: avoid double spending, attacks, level of trust in other nodes
 
-ezeket a dolgokat át kéne gondolni, hogy miért nem lehetséges duoble spend, milyen támadások lehetnek, blablabla... 
+%ezeket a dolgokat át kéne gondolni, hogy miért nem lehetséges duoble spend, milyen támadások lehetnek, blablabla... 
 
 
 
