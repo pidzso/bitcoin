@@ -114,7 +114,70 @@ void reverse(unsigned char bit[32]){
 		bit[i]=help[i];}}
 
 int main(int argc, char **argv){
-    unsigned char input[1024][32];
+	int a,b;
+	printf("Welcome in EIT-BTC cliens!\nWhat do you want?\n");
+stage1:
+    printf("\tPress 1 to check the validity of a block!\n");
+    printf("\tPress 2 to check transactions!\n");
+	printf("\tPress 0 to quit!\n");
+	a=getch();
+	if(a=='0'){
+		goto quit;}
+	if(a=='1'){
+		goto stage2a;}
+	else if(a=='2'){
+		goto stage2b;}
+	else {
+		printf("You choosen poorly!\n");
+		goto stage1;}
+stage2a:
+	printf("Which block would you like to verify?\nPlease insert the raw block to the raw.txt!\n");
+	printf("If you done with it, please press anything!\n");
+	a=getch();
+	goto verify;
+stage2b:
+	printf("What would you like to know?\n");
+	printf("\tThe incoming transactions for an address! (1)\n");
+	printf("\tThe outgoing transactions for an address! (2)\n");
+	printf("\tThe merkel branch for a transaction! (3)\n");
+	a=getch();
+	if(a=='3'){
+		printf("Please put the hash of the transaction into trans.txt!\n");
+		printf("If you done with it, please press anything!\n");
+		b=getch();
+		goto mbranch;}
+	else if(a=='1'){
+		printf("Please put the address into the address.txt!\n");
+		printf("If you done with it, please press anything!\n");
+		b=getch();
+		goto incoming;}
+	else if(a=='2'){
+		printf("Please put the address into the address.txt!\n");
+		printf("If you done with it, please press anything!\n");
+		b=getch();
+		goto outgoing;}
+	else {
+		printf("This option was not offered!\n");
+		goto stage2b;}
+
+verify:
+	printf("Verification in progress...\n");
+	
+	goto stage1;
+mbranch:
+	printf("Branch generation in progress...\n");
+	
+	goto stage1;
+incoming:
+	printf("Checking in progress...\n");
+	
+	goto stage1;
+outgoing:
+	printf("Checking in progress...\n");
+	
+	goto stage1;
+
+	unsigned char input[1024][32];
     unsigned char input0[64];
 	unsigned char input1[65];
     unsigned char input2[65];
@@ -133,4 +196,5 @@ int main(int argc, char **argv){
 	mroot(input,5,hash);
 	reverse(hash);
 	print_hash(hash);
+quit:
 	return 0;}

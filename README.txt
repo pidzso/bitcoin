@@ -1,5 +1,4 @@
 tex file írása (Réka, Máté)
-a program felhasználóbarátá tevése (Balázs)
 txt -ből való tetszőleseg sok karakterbeolvasás amiket használható hex-é alakítunk (Máté)
 funkciók
 	adott tranzakció adatai (Balázs)
