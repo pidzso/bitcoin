@@ -1,0 +1,6 @@
+Transactions: 2
+Root: 488508fc0f58ee897b35c0f41e1eb7d3d557e4b1ece99eb9598182bc8df13efe
+Time: 1293645615
+Bits: 453281356
+Nonce: 4035371776
+Size: 2
