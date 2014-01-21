@@ -159,5 +159,34 @@ void DSHA256(unsigned char text[], unsigned char hash[32],int len){
    sha256_update(&ctx,help,32);
    sha256_final(&ctx,hash);}
 
+//little-big endian
+void reverse(unsigned char bit[32]){
+	int i;
+	unsigned char help[32];
+	for(i=0;i<32;i++){
+		help[31-i]=bit[i];}
+	for(i=0;i<32;i++){
+		bit[i]=help[i];}}
+		
+//concenate two hash value
+void melt(unsigned char x1[32], unsigned char x2[32], unsigned char y[64]){
+	int i;
+	for(i=0;i<32;i++){
+		y[i]=x1[i];
+		y[i+32]=x2[i];}}
 
+//convert a char to an int
+long chartoint(char a){
+	long b;
+	b=a-'0';
+	return b;}
 
+//convert a character value to the value what the character as a hex value represent
+void convert(unsigned char thing[1024][64], int k){
+	int n,m;
+	for(n=0;n<k;n++){
+		for(m=0;m<64;m++){
+			if(thing[n][m]>40){
+				thing[n][m]=thing[n][m]-39;}
+			else if (thing[n][m]>10){
+				thing[n][m]=thing[n][m]-7;}}}}

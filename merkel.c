@@ -1,6 +1,15 @@
 #include "merkel.h"
 
-//adott számhoz (levelek száma) megmondja mennyi a fa mélysége
+//since this implementation reads fixed number of characters, it read after EOF as well
+//this find the EOF char, and set the lenght to its position
+long length;
+void cut(long* thing){
+	long n=0;
+	while(thing[n]!=-48){
+		n++;}
+	length=n;}
+
+//for a given number of transactions it sets deep to the required level of merkel tree
 int deep;
 void deepness(int transnum){
 	int d=0;
@@ -8,14 +17,7 @@ void deepness(int transnum){
 		d++;}
   deep=d;}
 
-//kettõ hast összerak egy kifejezéssé
-void melt(unsigned char x1[32], unsigned char x2[32], unsigned char y[64]){
-	int i;
-	for(i=0;i<32;i++){
-		y[i]=x1[i];
-		y[i+32]=x2[i];}}
-
-//egy adott szintrõl való hasheket fûzi össze, és hasheli meg újra, legyártva ezzel a következõ szintet
+//from a given level in a merkel tree it concenate the elements pairwise and hash them to get the level above
 int count;
 void leveljump(unsigned char level0[1024][32], unsigned char level1[1024][32], int db){
 	int i=0,j=0,ind=0;
@@ -33,15 +35,7 @@ void leveljump(unsigned char level0[1024][32], unsigned char level1[1024][32], i
 		DSHA256(help[db/2], level1[db/2],64);}
 	count=db/2+ind;}
 
-/*
-//a tranzakciókat hasheli össze
-void transtohash(unsigned char trans[], unsigned char hash[1024][32]){
-	int i;
-	for(i=0;i<x;i++){
-		SHA256(trans[i], hash[i]);}}
-*/
-
-//kiszámolja az adott tranzakciókhoz tartozó hashgyökeret
+//finds the merkel root for the given transactions
 void mroot(unsigned char hashes[1024][32], int db, unsigned char root[32]){
     deepness(db);
     unsigned char help[deep+1][1024][32];
@@ -53,14 +47,14 @@ void mroot(unsigned char hashes[1024][32], int db, unsigned char root[32]){
 	count=db;
     while(deep!=0){
 		leveljump(help[deep], help[deep-1], count);
-        db=ceil(db/2);
         deep=deep-1;}
     for(i=0;i<32;i++){
 		root[i]=help[0][0][i];}}
 
-//beolvas fileból két hash értéket
-void read(FILE *in, unsigned char x0[64], unsigned char x1[64], unsigned char x2[64], unsigned char x3[64], unsigned char x4[64], unsigned char z[1024][32]){
-	in=fopen("input.txt", "r");
+//read transaction hashes
+void readtransactions(unsigned char x0[64], unsigned char x1[64], unsigned char x2[64], unsigned char x3[64], unsigned char x4[64], unsigned char z[1024][32]){
+	FILE *in;
+	in=fopen("blocktransactions.txt", "r");
 		fscanf(in,"%s\n%s\n%s\n%s\n%s",x0, x1, x2, x3, x4);
 		const char *src0 = x0, *src1 = x1, *src2 = x2, *src3 = x3, *src4 = x4;
 		unsigned char buffer0[32], buffer1[32], buffer2[32], buffer3[32], buffer4[32];
@@ -104,16 +98,108 @@ void read(FILE *in, unsigned char x0[64], unsigned char x1[64], unsigned char x2
         	i++;}
 		fclose(in);}
 
-//bitreverser (little-big endian)
-void reverse(unsigned char bit[32]){
-	unsigned char help[32];
-	int i;
-	for(i=0;i<32;i++){
-		help[31-i]=bit[i];}
-	for(i=0;i<32;i++){
-		bit[i]=help[i];}}
+//read the raw block
+//collect the hashes of the transactions into transactions.txt
+//collect the header informations into blockdata.txt
+unsigned char root[64], nonce[16], bit[16], time[16];
+unsigned char transactions[1024][64];
+void readraw(){
+	FILE *rawf;
+	FILE *transf;
+	FILE *headf;
+	int tlen=0,blen=0,nlen=0;
+	long i=0, j=0;
+	long number=0;
+	long input[262144];
+    char in[262144];
+	rawf=fopen("raw.txt","r+");
+		for(i=0;i<262144;i++){
+			fscanf(rawf,"%c",&in[i]);
+			input[i]=chartoint(in[i]);}
+	fclose(rawf);
+	cut(input);
+	for(j=0;j<length;j++){
+		if(input[j]==75 && input[j+1]==-38 && input[j+8]==-14){
+			for(i=0;i<64;i++){
+				transactions[number][i]=input[j+16+i];}
+			number=number+1;}}
+	convert(transactions, number);
+	transf=fopen("blocktransactions.txt", "w");
+		for(i=0;i<number;i++){
+			for(j=0;j<64;j++){
+				fprintf(transf,"%x",transactions[i][j]);}
+			if(i!=number-1){
+				fprintf(transf,"\n");}}
+	fclose(transf);
+	j=0;
+	while(input[j]!=66 || input[j+1]!=63 || input[j+2]!=63){
+		j++;}
+		for(i=0;i<64;i++){
+			root[i]=input[j+7+i];}
+		while(input[j+64+tlen+19]!=-4){
+			time[tlen]=input[j+64+tlen+19];
+			tlen++;}
+		while(input[j+83+tlen+blen+11]!=-4){
+			bit[blen]=input[j+83+tlen+blen+11];
+			blen++;}
+		while(input[j+94+tlen+blen+nlen+12]!=-4){
+			nonce[nlen]=input[j+94+tlen+blen+nlen+12];
+			nlen++;}
+	convert(root,1);
+	headf=fopen("blockdata.txt", "w");
+		fprintf(headf,"Transactions: %d\n",number);
+		fprintf(headf,"Root: ");
+		for(i=0;i<64;i++){
+			fprintf(headf,"%x",root[i]);}
+		fprintf(headf,"\nTime: ");
+		for(i=0;i<tlen;i++){
+			fprintf(headf,"%d",time[i]);}
+		fprintf(headf,"\nBits: ");
+		for(i=0;i<blen;i++){
+			fprintf(headf,"%d",bit[i]);}
+		fprintf(headf,"\nNonce: ");
+		for(i=0;i<nlen;i++){
+			fprintf(headf,"%d",nonce[i]);}
+	fclose(headf);}
+
+//for a given transaction give back its merkel branch
+void mbranch(unsigned char hashes[1024][32], int db, unsigned char branch[1024][32], int pos){
+    deepness(db);
+    int posi=pos;
+    int d=db;
+	unsigned char help[deep+1][1024][32];
+	int i,j;
+	int ind=0;
+	for(i=0;i<db;i++){
+		for(j=0;j<32;j++){
+			help[deep][i][j]=hashes[i][j];}}
+	count=db;
+    while(deep!=0){
+		leveljump(help[deep], help[deep-1], count);
+        deep=deep-1;}
+	deepness(db);
+	for(i=0;i<deep;i++){
+		if(posi%2==1){
+			for(j=0;j<32;j++){
+				branch[i][j]=help[deep-i][posi-1][j];}}
+		else if(posi%2==0 && d==posi){
+			for(j=0;j<32;j++){
+				branch[i][j]=help[deep-i][posi][j];}}
+		else {
+			for(j=0;j<32;j++){
+				branch[i][j]=help[deep-i][posi+1][j];}}
+		d=ceil(d/2);
+		posi=floor(posi/2);}}
 
 int main(int argc, char **argv){
+	unsigned char hash[32];
+	unsigned char input[1024][32];
+    unsigned char br[1024][32];
+	unsigned char input0[64];
+	unsigned char input1[65];
+    unsigned char input2[65];
+    unsigned char input3[65];
+    unsigned char input4[65];
 	int a,b;
 	printf("Welcome in EIT-BTC cliens!\nWhat do you want?\n");
 stage1:
@@ -128,7 +214,7 @@ stage1:
 	else if(a=='2'){
 		goto stage2b;}
 	else {
-		printf("You choosen poorly!\n");
+		printf("Please select 1 or 2!\n");
 		goto stage1;}
 stage2a:
 	printf("Which block would you like to verify?\nPlease insert the raw block to the raw.txt!\n");
@@ -137,64 +223,59 @@ stage2a:
 	goto verify;
 stage2b:
 	printf("What would you like to know?\n");
-	printf("\tThe incoming transactions for an address! (1)\n");
-	printf("\tThe outgoing transactions for an address! (2)\n");
-	printf("\tThe merkel branch for a transaction! (3)\n");
+	printf("\tThe transactions for an address! (1)\n");
+	printf("\tThe merkel branch for a transaction! (2)\n");
 	a=getch();
-	if(a=='3'){
-		printf("Please put the hash of the transaction into trans.txt!\n");
+	if(a=='2'){
+		printf("Please put the raw bloch which contains the transaction into raw.txt and put the transaction itself into transaction.txt!\n");
 		printf("If you done with it, please press anything!\n");
 		b=getch();
 		goto mbranch;}
 	else if(a=='1'){
-		printf("Please put the address into the address.txt!\n");
+		printf("Please put the public key to the publickey.txt!\n");
 		printf("If you done with it, please press anything!\n");
 		b=getch();
-		goto incoming;}
-	else if(a=='2'){
-		printf("Please put the address into the address.txt!\n");
-		printf("If you done with it, please press anything!\n");
-		b=getch();
-		goto outgoing;}
+		goto trans;}
 	else {
 		printf("This option was not offered!\n");
 		goto stage2b;}
 
 verify:
 	printf("Verification in progress...\n");
-	
-	goto stage1;
-mbranch:
-	printf("Branch generation in progress...\n");
-	
-	goto stage1;
-incoming:
-	printf("Checking in progress...\n");
-	
-	goto stage1;
-outgoing:
-	printf("Checking in progress...\n");
-	
-	goto stage1;
-
-	unsigned char input[1024][32];
-    unsigned char input0[64];
-	unsigned char input1[65];
-    unsigned char input2[65];
-    unsigned char input3[65];
-    unsigned char input4[65];
-	unsigned char hash[32];
-    FILE *input_file;
-	read(input_file, input0, input1, input2, input3, input4, input);
-
+	readraw();
+	readtransactions(input0, input1, input2, input3, input4, input);
 	reverse(input[0]);
 	reverse(input[1]);
 	reverse(input[2]);
 	reverse(input[3]);
 	reverse(input[4]);
-	
 	mroot(input,5,hash);
 	reverse(hash);
+	printf("The generated merkel root:\n");
 	print_hash(hash);
+	printf("The merkel root from the block:\n");
+	int i;
+	for(i=0;i<64;i++){
+		printf("%x", root[i]);}
+	printf("\n");
+	goto stage1;
+mbranch:
+	printf("Branch generation in progress...\n");
+	readraw();
+	readtransactions(input0, input1, input2, input3, input4, input);
+	reverse(input[0]);
+	reverse(input[1]);
+	reverse(input[2]);
+	reverse(input[3]);
+	reverse(input[4]);
+	mbranch(input, 5, br, 2);
+	for(i=0;i<3;i++){
+		reverse(br[i]);
+		print_hash(br[i]);}
+	goto stage1;
+trans:
+	printf("Checking in progress...\n");
+	
+	goto stage1;
 quit:
 	return 0;}

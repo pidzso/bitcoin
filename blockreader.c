@@ -1,10 +1,5 @@
 #include "merkel.h"
 
-long chartoint(char a){
-	long b;
-	b=a-'0';
-	return b;}
-
 long length;
 void cut(long* thing){
 	long n=0;
@@ -12,17 +7,12 @@ void cut(long* thing){
 		n++;}
 	length=n;}
 
-void convert(unsigned char thing[1024][64], int k){
-	int n,m;
-	for(n=0;n<k;n++){
-		for(m=0;m<64;m++){
-			if(thing[n][m]>40){
-				thing[n][m]=thing[n][m]-39;}
-			else if (thing[n][m]>10){
-				thing[n][m]=thing[n][m]-7;}}}}
+readraw(){
 
-int main(int argc, char **argv){
-    unsigned char transactions[1024][64];
+  	FILE *rawf;
+    FILE *transf;
+    FILE *headf;
+unsigned char transactions[1024][64];
 	unsigned char root[64];
 	unsigned char size[16];
 	unsigned char nonce[16];
@@ -33,13 +23,11 @@ int main(int argc, char **argv){
 	long number=0;
 	long input[262144];
     char in[262144];
-	FILE *input_file;
-	input_file=fopen("raw.txt","r+");
+	rawf=fopen("raw.txt","r+");
 		for(i=0;i<262144;i++){
-			fscanf(input_file,"%c",&in[i]);
+			fscanf(rawf,"%c",&in[i]);
 			input[i]=chartoint(in[i]);}
-	fclose(input_file);
-
+	fclose(rawf);
 	cut(input);
 	for(j=0;j<length;j++){
 		if(input[j]==75 && input[j+1]==-38 && input[j+8]==-14){
@@ -47,15 +35,13 @@ int main(int argc, char **argv){
 				transactions[number][i]=input[j+16+i];}
 			number=number+1;}}
 	convert(transactions, number);
-	FILE *output_file1;
-	output_file1=fopen("blocktransactions.txt", "w");
+	transf=fopen("blocktransactions.txt", "w");
 		for(i=0;i<number;i++){
 			for(j=0;j<64;j++){
-				fprintf(output_file1,"%x",transactions[i][j]);}
+				fprintf(transf,"%x",transactions[i][j]);}
 			if(i!=number-1){
-				fprintf(output_file1,"\n");}}
-	fclose(output_file1);
-
+				fprintf(transf,"\n");}}
+	fclose(transf);
 	j=0;
 	while(input[j]!=66 || input[j+1]!=63 || input[j+2]!=63){
 		j++;}
@@ -74,28 +60,25 @@ int main(int argc, char **argv){
 			size[slen]=input[j+106+tlen+blen+nlen+slen+25];
 			slen++;}
 	convert(root,1);
-	FILE *output_file2;
-	output_file2=fopen("blockdata.txt", "w");
-		fprintf(output_file2,"Transactions: %d\n",number);
-		fprintf(output_file2,"Root: ");
+	headf=fopen("blockdata.txt", "w");
+		fprintf(headf,"Transactions: %d\n",number);
+		fprintf(headf,"Root: ");
 		for(i=0;i<64;i++){
-			fprintf(output_file2,"%x",root[i]);}
-		fprintf(output_file2,"\n");
-		fprintf(output_file2,"Time: ");
+			fprintf(headf,"%x",root[i]);}
+		fprintf(headf,"\nTime: ");
 		for(i=0;i<tlen;i++){
-			fprintf(output_file2,"%d",time[i]);}
-		fprintf(output_file2,"\n");
-		fprintf(output_file2,"Bits: ");
+			fprintf(headf,"%d",time[i]);}
+		fprintf(headf,"\nBits: ");
 		for(i=0;i<blen;i++){
-			fprintf(output_file2,"%d",bit[i]);}
-		fprintf(output_file2,"\n");
-		fprintf(output_file2,"Nonce: ");
+			fprintf(headf,"%d",bit[i]);}
+		fprintf(headf,"\nNonce: ");
 		for(i=0;i<nlen;i++){
-			fprintf(output_file2,"%d",nonce[i]);}
-		fprintf(output_file2,"\n");
-		fprintf(output_file2,"Size: ");
+			fprintf(headf,"%d",nonce[i]);}
+		fprintf(headf,"\nSize: ");
 		for(i=0;i<slen;i++){
-			fprintf(output_file2,"%d",size[i]);}
-	fclose(output_file2);
+			fprintf(headf,"%d",size[i]);}
+	fclose(headf);}
 
+int main(int argc, char **argv){
+	readraw();
 	return 0;}
