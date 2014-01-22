@@ -118,29 +118,44 @@ Nodes identify themselves and find another nodes by their IP addresses. They sto
 
 A transaction hash is a 32 bytes hexadecimal number, we need to map them to IP addresses. An easy way is to calculate the SHA256 hash of the IP addresses, and the node with the closest hash value to the transaction hash will store the transaction.
 
+We treat the keys (hash of IP adresses) as points on a circle and define the distance of two keys as the distance traveling clockwise on the circle from one key to the other. So the circular keyspace is cut inti contiguous segments whose end points are the hash of node ids (IP addresses). If $id_1$ and $id_2$ are two adjacent node ids, with a shorter clocwise distan from $id_1$ to $id_2$ then $id_1$ will store all the values between $id_1$ and $id_2$. (Like in the chord DHT.)
+
 Since values of a hash function are uniformly distributed, node ids will be uniformly distributed in the keyspace. It implies that nodes will have to store the about same amount of transactions.
 
  %itt a következő a problémám: ha valaki megfigyeli egy node forgalmát (h milyen tranzakciókat tárol el) akkor mivel nem csak a sajátját tárolja el nem tudja h mik az ő tranzakciói. de a tarnzakciók azonosítójából ki tudja szűrni h azt a node azért tárolta-e el mert közel van az id-jéhez vagy mert az övé a tranzakció. erre ugye megoldás lenne h a node nem hozza nyilvánosságra az id-jét, de ekkor a későbbiekben leírt routingot nem lehetne megvalósítani... vagy persze egymás között eltitkosítva küldözgetnek üzenetet, gondolom ez amúgy is így van, de... hát szóval ez megint csak problémákat vet fel
 
-If a new node is added to the network, as soon as it starts communicating with other nodes it will know which transactions it should store. It is possible that another node with an id close to this new node will only recognise this node later. In this case some transactions may be stored by both of them, but it's only  little overhead.
 
-% az id alapján az új node-ok tudni fogják h milyen tranzakciókat tároljanak, és a broadcastolják az id-jukat amikor belépnek a networkbe, akkor a többi node is tudni fogja h ha van esetleg egy tranzakció amit korábban ő tárolt volna, az most már az új node-hoz közelebb van. de ha egy tranzakiót ketten is eltárolnak abból sincs semmi baj. viszont a régebben eltárolt tranzakciók esete még mindig bajos, ugyanis azokat nem küldik át az új node-nak ha az új rendszer alapján már hozzá tartozna. bár ezek a kérdések sztem a legtöbb DHT-nál felmerülnek, úgyhoy lehet hogy elegendő lenne egynek mélyebben utánanézni
+
 
 
 \subsection{Routing protocol}
 
-A suitable routing protocol is necessary for forwarding and requesting transactions.
+A suitable routing protocol is necessary for forwarding and requesting transactions and adding and deleting nodes.
 
 A node can send messages to nodes whose IP address is known to it (stored in its local peers.dat). For these nodes it can calculate their id (hash of IP address).
 
-If a new transcation arrives in the system 
+If a new node is added to the network,  it first finds some nodes already in the system.
+% Ki kell írni hogy hogyan találhat ilyet: ugyanúgy mint egy normál bitcoin esetén
+The new node sends its id  (in this chapter i refer as id to to the hash of IP addresses) to these nodes. These nodes will find in their peer.dat database the node which id is closest to this node's id in the sense of the aboved defined distance (they hash the stored IP addresses and check it), and forward the message to it. If this node can find another node closer to this new node it will forward this message, and so on until the message reaches the node closest to the new node. This node won't find anyone closer to the new node, so it won't forward the message.
 
-easy to find a transaction (send message to a node whose id is closer to the transactions key than yours and so on, and it comes back the same way. here we need some proper routing protocol ->crypto prot)
+This node halves its key space (so half of the transactions that were previously stored by this node will be stored by the new node) and sends a message to the new node with its id, half of its transactions and the range of transaction hashes it should store later; furthermore it stores this new node as its children. The new node will store this node as its father
 
-%szóval itt egy routing protocol-lal utánaérdeklődik egy adott node egy tranzakciónak. ha nem is tudja minden másik node id-ját, elküld egy requset üzenetet egy node-nek akinek az id-ja közelebb van a tranzakcióhoz, és az megint továbbítja egy olyannak aki még közelebb van, mígnem el nem ér ahhoz akinél van a message. itt ugye szükséges h a node-ok egy összefüggő gráfot alkossanak (az élek azt jelölöik akinek az id-ját ismered), erre akkor kell valami feltétel h hány szomszédja legyen egynek. vagy valami ilyesmi. az is kérdéses, hogy itt mi alapján definiálunk egy szomszédot. mivel broadcast communication van, logikus lenne h a hozzá közeliek a szomszédok, de mivel ezt az alkalmazást pl smartphonokra cináljuk, azoknak a helyzete változik.
+Example: $id_1$ and $id_2$ are two adjacent nodes, and $id_3$ is a newly arrived node such that $id_3$ is between $id_1$ and $id_2$. In this case a message will reach $id_1$ with the new nodes id. $id_1$ know cheks that its closer to it than to $id_2$. It sends its own is ($id_1$) to $id_3$ along with $id_2$ and trhe transactions between $id_3$ and $id_2$ (they were stored by $id_1$ but from now on they will be stored by $id_3$). From $id_2$ $id_3$ will know that the transactions it should store range from $id_3$ to $id_2$.
+%és még a mögötte lévő node id-ja
 
+This way the new node will know which transactions it should store in the future and will store some other transaction in its database. Furthermore it knows its two neighbours, so if a routing message arrives to it the node will be able to decide which way to forward it.
 
-when broadcasting a transaction a node stores the ones that belong to him or that are close to him. when broadcasting a block each node checks the transactions in it and stores merkel branches of the previously stored transactions. since nodes stores all the block headers, with the merkel branch hey ca verify a transaction
+This new node will also store the id of the nodes it sent the first message to. This way the node will know nodes further to it, not only its neighbours. This will fasten up a routing. And in the future if it gets a message from a new node, itt will store its id as well.
+
+If a node leaves the system, it notifies its father node and its children. It sends the children the id of its father node, and the children will store it as their new father. It sends a message to the father with all its stored transactions and the children ids. The father will redistribute the transactions among its children.
+
+% itt csak két gyereke között kell megosztani a tranzakcicót, akik közvetlenül a kilépő node előtt és után voltak
+
+A routing protocol: assume that node A wants to find a transaction. It sends a request message with the transaction hash to the node in its peer.dat file whose id is closest to the transaction hash. This node will forward this transaction hash with the id of the original node to the node in its peer.dat file with the closest id to the hash and so on, until it reaches the node who actually stores that transaction. This node will send a the transaction to the original node and stores this node's id.
+
+Basically, if a node gets a message from a node previously unknown to it it will store its id.
+
+When broadcasting a transaction a node stores the ones that belong to him or that are close to him. When broadcasting a block each node stores the block header and checks the transactions in it and stores merkel branches of the previously stored transactions. Since nodes stores all the block headers, with the merkel branch they can verify a transaction.
 
 %szerintem ha mindenki eltárolja az összes block header-t és az összes tranzakció valahol a networkben el van mentve, akkor ezzel tudnak verifikálni mindent, és megvalósul a decentralizáltság. ellenvetéseket várok.. :)
 
