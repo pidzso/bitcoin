@@ -109,7 +109,7 @@ void readraw(){
 	j=0;
 	while(input[j]!=67 || input[j+1]!=57 || input[j+2]!=74){
 		j++;}
-		while(input[j+slen]!=-4){
+		while(input[j+slen+6]!=-4){
 			size[slen]=input[j+slen+6];
 			slen++;}
 	convert(root,1);
@@ -131,7 +131,7 @@ void readraw(){
 			fprintf(headf,"%d",time[i]);}
 		fprintf(headf,"\nBits: ");
 		for(i=0;i<tlen;i++){
-			fprintf(headf,"%d",time[i]);}
+			fprintf(headf,"%d",bit[i]);}
 		fprintf(headf,"\nNonce: ");
 		for(i=0;i<nlen;i++){
 			fprintf(headf,"%d",nonce[i]);}
