@@ -41,7 +41,7 @@ void mroot(unsigned char hashes[1024][32], int db, unsigned char root[32]){
     unsigned char help[deep+1][1024][32];
 	int i,j;
 	for(i=0;i<db;i++){
-		reverse(hashes[i]);}
+		reverse(hashes[i],32);}
 	int ind=0;
 	for(i=0;i<db;i++){
 		for(j=0;j<32;j++){
@@ -52,7 +52,7 @@ void mroot(unsigned char hashes[1024][32], int db, unsigned char root[32]){
         deep=deep-1;}
     for(i=0;i<32;i++){
 		root[i]=help[0][0][i];}
-	reverse(root);}
+	reverse(root,32);}
 
 //read the raw block
 //collect the hashes of the transactions into transactions.txt
@@ -112,9 +112,9 @@ void readraw(){
 		while(input[j+slen+6]!=-4){
 			size[slen]=input[j+slen+6];
 			slen++;}
-	convert(root,1);
-	convert(blkhash,1);
-	convert(prevhash,1);
+	convert1(root, 64);
+	convert1(blkhash, 64);
+	convert1(prevhash, 64);
 	headf=fopen("blockdata.txt", "w");
 		fprintf(headf,"Block hash: ");
 		for(i=0;i<64;i++){
@@ -141,6 +141,27 @@ void readraw(){
 			fprintf(headf,"%d",size[i]);}
 	fclose(headf);}
 
+//checks the coinbase transaction
+int cbnum;
+void coinbase(){
+	FILE *rawf;
+	long i=0,j=0,k=0;
+	long input[262144];
+    char in[262144];
+	rawf=fopen("raw.txt","r+");
+		for(i=0;i<262144;i++){
+			fscanf(rawf,"%c",&in[i]);
+			input[i]=chartoint(in[i]);}
+	fclose(rawf);
+	cut(input);
+	cbnum=0;
+	for(j=0;j<length;j++){
+		i=0;
+		while(input[j+i]==0){
+			i++;}
+		if(i==64){
+			cbnum++;}}}
+
 //for a given transaction give back its merkel branch
 void mbranch(unsigned char hashes[1024][32], int db, unsigned char branch[1024][32], int lor[1024], int pos){
     deepness(db);
@@ -149,7 +170,7 @@ void mbranch(unsigned char hashes[1024][32], int db, unsigned char branch[1024][
 	unsigned char help[deep+1][1024][32];
 	int i,j;
 	for(i=0;i<db;i++){
-		reverse(hashes[i]);}
+		reverse(hashes[i],32);}
 	int ind=0;
 	for(i=0;i<db;i++){
 		for(j=0;j<32;j++){
@@ -174,7 +195,7 @@ void mbranch(unsigned char hashes[1024][32], int db, unsigned char branch[1024][
 			lor[i]=1;}
 		d=ceil(d/2);
 		posi=floor(posi/2);
-		reverse(branch[i]);}}
+		reverse(branch[i],32);}}
 
 int main(int argc, char **argv){
 	unsigned char hash[32];
@@ -228,7 +249,7 @@ stage2b:
 		goto stage2b;}
 
 verify:
-	printf("Verification in progress...\n");
+	printf("Merkel root checking...\n");
 	readraw();
 	readtransactions(input0, input1, input2, input3, input4, input);
 	mroot(input,5,hash);
@@ -239,6 +260,9 @@ verify:
 	for(i=0;i<64;i++){
 		printf("%x", root[i]);}
 	printf("\n");
+	printf("Coinbase transaction checking...\n");
+	coinbase();
+	printf("Number of coinbase transactions: %d\n", cbnum);
 	goto stage3;
 mbranch:
 	printf("Branch generation in progress...\n");

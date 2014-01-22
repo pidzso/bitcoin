@@ -163,20 +163,36 @@ void DSHA256(unsigned char text[], unsigned char hash[32],int len){
    sha256_final(&ctx,hash);}
 
 //change to/from little-big endian
-void reverse(unsigned char bit[32]){
+void reverse(unsigned char bit[], int k){
 	int i;
-	unsigned char help[32];
-	for(i=0;i<32;i++){
-		help[31-i]=bit[i];}
-	for(i=0;i<32;i++){
+	unsigned char help[k];
+	for(i=0;i<k;i++){
+		help[k-1-i]=bit[i];}
+	for(i=0;i<k;i++){
 		bit[i]=help[i];}}
-		
+
 //concenate two hash value
 void melt(unsigned char x1[32], unsigned char x2[32], unsigned char y[64]){
 	int i;
 	for(i=0;i<32;i++){
 		y[i]=x1[i];
 		y[i+32]=x2[i];}}
+
+//the header maker function
+void makeh(unsigned char v[4], unsigned char p[32], unsigned char r[32], unsigned char t[4], unsigned char b[4], unsigned char n[4], unsigned char h[80]){
+	int i;
+	for(i=0;i<4;i++){
+		h[i]=v[3-i];}
+	for(i=0;i<32;i++){
+		h[i+4]=p[31-i];}
+	for(i=0;i<32;i++){
+		h[i+36]=r[31-i];}
+	for(i=0;i<4;i++){
+		h[i+68]=t[3-i];}
+	for(i=0;i<4;i++){
+		h[i+72]=b[3-i];}
+	for(i=0;i<4;i++){
+		h[i+76]=n[3-i];}}
 
 //convert a char to an int
 long chartoint(char a){
@@ -193,6 +209,15 @@ void convert(unsigned char thing[1024][64], int k){
 				thing[n][m]=thing[n][m]-39;}
 			else if (thing[n][m]>10){
 				thing[n][m]=thing[n][m]-7;}}}}
+
+//works as the previous one, except with diffrent inputs
+void convert1(unsigned char thing[64], int k){
+	int m;
+	for(m=0;m<k;m++){
+		if(thing[m]>40){
+			thing[m]=thing[m]-39;}
+		else if (thing[m]>10){
+			thing[m]=thing[m]-7;}}}
 
 //for a list of a transaction and for a particular transaction it gives back the place where where the transaction is in the list
 void position(unsigned char hashes[1024][32], int db, unsigned char tran[32], int p){
