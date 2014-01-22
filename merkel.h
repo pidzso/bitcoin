@@ -190,3 +190,62 @@ void convert(unsigned char thing[1024][64], int k){
 				thing[n][m]=thing[n][m]-39;}
 			else if (thing[n][m]>10){
 				thing[n][m]=thing[n][m]-7;}}}}
+
+//give back the place where the transaction is
+void position(unsigned char hashes[1024][32], int db, unsigned char tran[32], int p){
+	int i,j;
+	int help=0;
+	for(i=0;i<db;i++){
+		help=0;
+		for(j=0;j<32;j++){
+			if(hashes[i][j]==tran[j]){
+				help=help+1;}
+			if(help==32){
+				p=i+1;}}}}
+
+//read transaction hashes
+void readtransactions(unsigned char x0[64], unsigned char x1[64], unsigned char x2[64], unsigned char x3[64], unsigned char x4[64], unsigned char z[1024][32]){
+	FILE *in;
+	in=fopen("blocktransactions.txt", "r");
+		fscanf(in,"%s\n%s\n%s\n%s\n%s",x0, x1, x2, x3, x4);
+		const char *src0 = x0, *src1 = x1, *src2 = x2, *src3 = x3, *src4 = x4;
+		unsigned char buffer0[32], buffer1[32], buffer2[32], buffer3[32], buffer4[32];
+		unsigned char *dst0 = buffer0, *dst1 = buffer1, *dst2 = buffer2, *dst3 = buffer3, *dst4 = buffer4;
+		unsigned char *end0 = buffer0 + sizeof(buffer0), *end1 = buffer1 + sizeof(buffer1), *end2 = buffer2 + sizeof(buffer2), *end3 = buffer3 + sizeof(buffer3), *end4 = buffer4 + sizeof(buffer4);
+ 		unsigned int u0, u1, u2, u3, u4;
+		while (dst0 < end0 && sscanf(src0, "%02x", &u0) == 1){
+ 			*dst0++ = u0;
+        	src0 += 2;}
+  		while (dst1 < end1 && sscanf(src1, "%02x", &u1) == 1){
+ 			*dst1++ = u1;
+        	src1 += 2;}
+		while (dst2 < end2 && sscanf(src2, "%02x", &u2) == 1){
+ 			*dst2++ = u2;
+        	src2 += 2;}
+        while (dst3 < end3 && sscanf(src3, "%02x", &u3) == 1){
+ 			*dst3++ = u3;
+        	src3 += 2;}
+        while (dst4 < end4 && sscanf(src4, "%02x", &u4) == 1){
+ 			*dst4++ = u4;
+        	src4 += 2;}
+		int i=0;
+		for (dst0 = buffer0; dst0 < end0; dst0++){
+			z[0][i]=*dst0;
+        	i++;}
+		i=0;
+        for (dst1 = buffer1; dst1 < end1; dst1++){
+        	z[1][i]=*dst1;
+        	i++;}
+		i=0;
+        for (dst2 = buffer2; dst2 < end2; dst2++){
+        	z[2][i]=*dst2;
+        	i++;}
+        i=0;
+        for (dst3 = buffer3; dst3 < end3; dst3++){
+        	z[3][i]=*dst3;
+        	i++;}
+        i=0;
+        for (dst4 = buffer4; dst4 < end4; dst4++){
+        	z[4][i]=*dst4;
+        	i++;}
+		fclose(in);}

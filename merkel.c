@@ -40,6 +40,8 @@ void mroot(unsigned char hashes[1024][32], int db, unsigned char root[32]){
     deepness(db);
     unsigned char help[deep+1][1024][32];
 	int i,j;
+	for(i=0;i<db;i++){
+		reverse(hashes[i]);}
 	int ind=0;
 	for(i=0;i<db;i++){
 		for(j=0;j<32;j++){
@@ -49,67 +51,21 @@ void mroot(unsigned char hashes[1024][32], int db, unsigned char root[32]){
 		leveljump(help[deep], help[deep-1], count);
         deep=deep-1;}
     for(i=0;i<32;i++){
-		root[i]=help[0][0][i];}}
-
-//read transaction hashes
-void readtransactions(unsigned char x0[64], unsigned char x1[64], unsigned char x2[64], unsigned char x3[64], unsigned char x4[64], unsigned char z[1024][32]){
-	FILE *in;
-	in=fopen("blocktransactions.txt", "r");
-		fscanf(in,"%s\n%s\n%s\n%s\n%s",x0, x1, x2, x3, x4);
-		const char *src0 = x0, *src1 = x1, *src2 = x2, *src3 = x3, *src4 = x4;
-		unsigned char buffer0[32], buffer1[32], buffer2[32], buffer3[32], buffer4[32];
-		unsigned char *dst0 = buffer0, *dst1 = buffer1, *dst2 = buffer2, *dst3 = buffer3, *dst4 = buffer4;
-		unsigned char *end0 = buffer0 + sizeof(buffer0), *end1 = buffer1 + sizeof(buffer1), *end2 = buffer2 + sizeof(buffer2), *end3 = buffer3 + sizeof(buffer3), *end4 = buffer4 + sizeof(buffer4);
- 		unsigned int u0, u1, u2, u3, u4;
-		while (dst0 < end0 && sscanf(src0, "%02x", &u0) == 1){
- 			*dst0++ = u0;
-        	src0 += 2;}
-  		while (dst1 < end1 && sscanf(src1, "%02x", &u1) == 1){
- 			*dst1++ = u1;
-        	src1 += 2;}
-		while (dst2 < end2 && sscanf(src2, "%02x", &u2) == 1){
- 			*dst2++ = u2;
-        	src2 += 2;}
-        while (dst3 < end3 && sscanf(src3, "%02x", &u3) == 1){
- 			*dst3++ = u3;
-        	src3 += 2;}
-        while (dst4 < end4 && sscanf(src4, "%02x", &u4) == 1){
- 			*dst4++ = u4;
-        	src4 += 2;}
-		int i=0;
-		for (dst0 = buffer0; dst0 < end0; dst0++){
-			z[0][i]=*dst0;
-        	i++;}
-		i=0;
-        for (dst1 = buffer1; dst1 < end1; dst1++){
-        	z[1][i]=*dst1;
-        	i++;}
-		i=0;
-        for (dst2 = buffer2; dst2 < end2; dst2++){
-        	z[2][i]=*dst2;
-        	i++;}
-        i=0;
-        for (dst3 = buffer3; dst3 < end3; dst3++){
-        	z[3][i]=*dst3;
-        	i++;}
-        i=0;
-        for (dst4 = buffer4; dst4 < end4; dst4++){
-        	z[4][i]=*dst4;
-        	i++;}
-		fclose(in);}
+		root[i]=help[0][0][i];}
+	reverse(root);}
 
 //read the raw block
 //collect the hashes of the transactions into transactions.txt
 //collect the header informations into blockdata.txt
 unsigned char root[64], nonce[16], bit[16], time[16];
 unsigned char transactions[1024][64];
+long number=0;
 void readraw(){
 	FILE *rawf;
 	FILE *transf;
 	FILE *headf;
 	int tlen=0,blen=0,nlen=0;
 	long i=0, j=0;
-	long number=0;
 	long input[262144];
     char in[262144];
 	rawf=fopen("raw.txt","r+");
@@ -163,12 +119,14 @@ void readraw(){
 	fclose(headf);}
 
 //for a given transaction give back its merkel branch
-void mbranch(unsigned char hashes[1024][32], int db, unsigned char branch[1024][32], int pos){
+void mbranch(unsigned char hashes[1024][32], int db, unsigned char branch[1024][32], int lor[1024], int pos){
     deepness(db);
     int posi=pos;
     int d=db;
 	unsigned char help[deep+1][1024][32];
 	int i,j;
+	for(i=0;i<db;i++){
+		reverse(hashes[i]);}
 	int ind=0;
 	for(i=0;i<db;i++){
 		for(j=0;j<32;j++){
@@ -181,20 +139,26 @@ void mbranch(unsigned char hashes[1024][32], int db, unsigned char branch[1024][
 	for(i=0;i<deep;i++){
 		if(posi%2==1){
 			for(j=0;j<32;j++){
-				branch[i][j]=help[deep-i][posi-1][j];}}
+				branch[i][j]=help[deep-i][posi-1][j];}
+			lor[i]=-1;}
 		else if(posi%2==0 && d==posi){
 			for(j=0;j<32;j++){
-				branch[i][j]=help[deep-i][posi][j];}}
+				branch[i][j]=help[deep-i][posi][j];}
+			lor[i]=0;}
 		else {
 			for(j=0;j<32;j++){
-				branch[i][j]=help[deep-i][posi+1][j];}}
+				branch[i][j]=help[deep-i][posi+1][j];}
+			lor[i]=1;}
 		d=ceil(d/2);
-		posi=floor(posi/2);}}
+		posi=floor(posi/2);
+		reverse(branch[i]);}}
 
 int main(int argc, char **argv){
 	unsigned char hash[32];
 	unsigned char input[1024][32];
     unsigned char br[1024][32];
+    int rol[1024];
+    int pstn;
 	unsigned char input0[64];
 	unsigned char input1[65];
     unsigned char input2[65];
@@ -244,13 +208,7 @@ verify:
 	printf("Verification in progress...\n");
 	readraw();
 	readtransactions(input0, input1, input2, input3, input4, input);
-	reverse(input[0]);
-	reverse(input[1]);
-	reverse(input[2]);
-	reverse(input[3]);
-	reverse(input[4]);
 	mroot(input,5,hash);
-	reverse(hash);
 	printf("The generated merkel root:\n");
 	print_hash(hash);
 	printf("The merkel root from the block:\n");
@@ -258,24 +216,30 @@ verify:
 	for(i=0;i<64;i++){
 		printf("%x", root[i]);}
 	printf("\n");
-	goto stage1;
+	goto stage3;
 mbranch:
 	printf("Branch generation in progress...\n");
 	readraw();
 	readtransactions(input0, input1, input2, input3, input4, input);
-	reverse(input[0]);
-	reverse(input[1]);
-	reverse(input[2]);
-	reverse(input[3]);
-	reverse(input[4]);
-	mbranch(input, 5, br, 2);
+	position(input, number, "295970c90c282fb5af692d8b7aed98b096955f6e53f8ba0a6e7d12c287c25096", pstn);
+	mbranch(input, number, br, rol, pstn);
 	for(i=0;i<3;i++){
-		reverse(br[i]);
-		print_hash(br[i]);}
-	goto stage1;
+		print_hash(br[i]);
+		printf("%d\n",rol[i]);}
+	goto stage3;
 trans:
 	printf("Checking in progress...\n");
 	
-	goto stage1;
+	goto stage3;
+stage3:
+	printf("Would you like to do something else?\n\tYes (1)\n\tNo (0)\n");
+	b=getch();
+	if(b=='1'){
+		goto stage1;}
+	else if(b=='0'){
+		goto quit;}
+	else {
+		printf("This was not an option!\n");
+		goto stage3;}
 quit:
 	return 0;}
