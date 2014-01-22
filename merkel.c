@@ -57,14 +57,14 @@ void mroot(unsigned char hashes[1024][32], int db, unsigned char root[32]){
 //read the raw block
 //collect the hashes of the transactions into transactions.txt
 //collect the header informations into blockdata.txt
-unsigned char root[64], nonce[16], bit[16], time[16];
+unsigned char root[64], nonce[16], bit[16], time[16], blkhash[64], prevhash[64], size[16];
 unsigned char transactions[1024][64];
-long number=0;
+long number=0, version;
 void readraw(){
 	FILE *rawf;
 	FILE *transf;
 	FILE *headf;
-	int tlen=0,blen=0,nlen=0;
+	int tlen=0,blen=0,nlen=0,slen=0;
 	long i=0, j=0;
 	long input[262144];
     char in[262144];
@@ -88,10 +88,15 @@ void readraw(){
 				fprintf(transf,"\n");}}
 	fclose(transf);
 	j=0;
+	for(i=12;i<76;i++){
+		blkhash[i-12]=input[i];}
+	version=input[87];
 	while(input[j]!=66 || input[j+1]!=63 || input[j+2]!=63){
 		j++;}
 		for(i=0;i<64;i++){
 			root[i]=input[j+7+i];}
+		for(i=0;i<64;i++){
+			prevhash[i]=input[i+(j-75)];}
 		while(input[j+64+tlen+19]!=-4){
 			time[tlen]=input[j+64+tlen+19];
 			tlen++;}
@@ -101,21 +106,39 @@ void readraw(){
 		while(input[j+94+tlen+blen+nlen+12]!=-4){
 			nonce[nlen]=input[j+94+tlen+blen+nlen+12];
 			nlen++;}
+	j=0;
+	while(input[j]!=67 || input[j+1]!=57 || input[j+2]!=74){
+		j++;}
+		while(input[j+slen]!=-4){
+			size[slen]=input[j+slen+6];
+			slen++;}
 	convert(root,1);
+	convert(blkhash,1);
+	convert(prevhash,1);
 	headf=fopen("blockdata.txt", "w");
-		fprintf(headf,"Transactions: %d\n",number);
-		fprintf(headf,"Root: ");
+		fprintf(headf,"Block hash: ");
+		for(i=0;i<64;i++){
+			fprintf(headf,"%x",blkhash[i]);}
+		fprintf(headf,"\nVersion: %d", version);
+		fprintf(headf,"\nPrevious block hash: ");
+		for(i=0;i<64;i++){
+			fprintf(headf,"%x",prevhash[i]);}
+		fprintf(headf,"\nRoot: ");
 		for(i=0;i<64;i++){
 			fprintf(headf,"%x",root[i]);}
 		fprintf(headf,"\nTime: ");
 		for(i=0;i<tlen;i++){
 			fprintf(headf,"%d",time[i]);}
 		fprintf(headf,"\nBits: ");
-		for(i=0;i<blen;i++){
-			fprintf(headf,"%d",bit[i]);}
+		for(i=0;i<tlen;i++){
+			fprintf(headf,"%d",time[i]);}
 		fprintf(headf,"\nNonce: ");
 		for(i=0;i<nlen;i++){
 			fprintf(headf,"%d",nonce[i]);}
+		fprintf(headf,"\nTransactions: %d",number);
+		fprintf(headf,"\nSize: ");
+		for(i=0;i<slen;i++){
+			fprintf(headf,"%d",size[i]);}
 	fclose(headf);}
 
 //for a given transaction give back its merkel branch
@@ -241,5 +264,8 @@ stage3:
 	else {
 		printf("This was not an option!\n");
 		goto stage3;}
+error:
+	printf("Something went wrong!\n");
+	goto stage3;
 quit:
 	return 0;}

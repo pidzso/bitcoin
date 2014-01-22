@@ -135,12 +135,14 @@ void sha256_final(SHA256_CTX *ctx, uchar hash[]){
       hash[i+24] = (ctx->state[6] >> (24-i*8)) & 0x000000ff;
       hash[i+28] = (ctx->state[7] >> (24-i*8)) & 0x000000ff;}}
 
+//print the 02X values for a hash string
 void print_hash(unsigned char hash[32]){
    int idx;
    for (idx=0; idx < 32; idx++)
       printf("%02x",hash[idx]);
    printf("\n");}
 
+//hash an arbitrary lenght string
 void SHA256(unsigned char text[], unsigned char hash[32],int len){
    int idx;
    SHA256_CTX ctx;
@@ -148,6 +150,7 @@ void SHA256(unsigned char text[], unsigned char hash[32],int len){
    sha256_update(&ctx,text,len);
    sha256_final(&ctx,hash);}
 
+//double hash an arbitrary length string
 void DSHA256(unsigned char text[], unsigned char hash[32],int len){
    int idx;
    unsigned char help[32];
@@ -159,7 +162,7 @@ void DSHA256(unsigned char text[], unsigned char hash[32],int len){
    sha256_update(&ctx,help,32);
    sha256_final(&ctx,hash);}
 
-//little-big endian
+//change to/from little-big endian
 void reverse(unsigned char bit[32]){
 	int i;
 	unsigned char help[32];
@@ -191,8 +194,9 @@ void convert(unsigned char thing[1024][64], int k){
 			else if (thing[n][m]>10){
 				thing[n][m]=thing[n][m]-7;}}}}
 
-//give back the place where the transaction is
+//for a list of a transaction and for a particular transaction it gives back the place where where the transaction is in the list
 void position(unsigned char hashes[1024][32], int db, unsigned char tran[32], int p){
+	p=1024;
 	int i,j;
 	int help=0;
 	for(i=0;i<db;i++){
@@ -204,6 +208,7 @@ void position(unsigned char hashes[1024][32], int db, unsigned char tran[32], in
 				p=i+1;}}}}
 
 //read transaction hashes
+//now works only for fixt number, namely for 5 hash value
 void readtransactions(unsigned char x0[64], unsigned char x1[64], unsigned char x2[64], unsigned char x3[64], unsigned char x4[64], unsigned char z[1024][32]){
 	FILE *in;
 	in=fopen("blocktransactions.txt", "r");
