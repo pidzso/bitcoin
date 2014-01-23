@@ -115,7 +115,7 @@ void readraw(unsigned char blkhash[64], unsigned char prevhash[64], unsigned cha
 			for(j=0;j<64;j++){
 				fprintf(transf,"%x",transactions[i][j]);}
 			if(i!=no-1){
-				fprintf(transf,"\n");}}
+				fprintf(transf,"\n\n");}}
 	fclose(transf);
 
 	//look for the header data
@@ -256,23 +256,21 @@ int main(int argc, char **argv){
 	//these are needed because readraw depend on chars instead of double hexes
 	//	unsigned char root[32], nonce[4], bit[4], time[4], blkhash[32], prevhash[32], size[32];
 	//	unsigned char transactions[1024][32];
+	
+	//the blockheader
 	unsigned char blkhash[64], prevhash[64], root[64], time[16], bit[16], nonce[16], size[16], transactions[1024][64];
-	unsigned char hash[32];
-	//the transactions supposed to read into this
-	unsigned char input[1024][32];
 	//the branch from the tree
 	unsigned char br[1024][32];
     //the order indicator for concatenation with the branch
 	int rol[1024];
 	//the position in a transactionlist for a given transaction
     int pstn;
-    //there are needed because the bad file reading technic
-    //first we put them here, and them fromhere to input[1024][32]
-	unsigned char input0[64];
-	unsigned char input1[65];
-    unsigned char input2[65];
-    unsigned char input3[65];
-    unsigned char input4[65];
+    //unformated transactions
+	unsigned char unformated[32768];
+	//a hash value
+	unsigned char hash[32];
+	//formatted transactions
+	unsigned char input[1024][32];
     //help variables for the human interaction
 	int a,b;
 	printf("Welcome in EIT-BTC cliens!\nWhat do you want?\n");
@@ -322,10 +320,9 @@ verify:
 	printf("Merkel root checking...\n");
 	//read the merkel root from the rw block file
 	//generate the merkel root from the transactions from the raw block file
-	//MISSING: it should be check wether this two are indentical or not
-	//MISSING: need the char to double hex function for this
 	readraw(blkhash, prevhash, root, time, bit, nonce, size, transactions);
-	readtransactions(input0, input1, input2, input3, input4, input);
+	readtrans(unformated);
+	separate(number,unformated,input);
 	mroot(input,number,hash);
 	printf("The generated merkel root:\n");
 	print_hash(hash);
@@ -343,10 +340,10 @@ verify:
 mbranch:
 	printf("Branch generation in progress...\n");
 	//read the raw block and generates the branch for a given transaction
-	//MISSING: here the transformer function needed as well to get the given transaction from a file
 	readraw(blkhash, prevhash, root, time, bit, nonce, size, transactions);
-	readtransactions(input0, input1, input2, input3, input4, input);
-	position(input, number, "295970c90c282fb5af692d8b7aed98b096955f6e53f8ba0a6e7d12c287c25096", pstn);
+	readtrans(unformated);
+	separate(number,unformated,input);
+	position(input, number, input[pstn], pstn);
 	mbranch(input, number, br, rol, pstn+1);
 	for(i=0;i<3;i++){
 		print_hash(br[i]);

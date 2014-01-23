@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#define FILELEN 65536 
+
 ///////
 //SHA//
 ///////
@@ -231,6 +233,35 @@ void position(unsigned char hashes[1024][32], int db, unsigned char tran[32], in
 				help=help+1;}
 			if(help==32){
 				p=i+1;}}}}
+
+//convert a char to its hexa value
+int ascii2hex(char c){
+	int num = (int) c;
+	if(num<58 && num>47){
+		return num-48;}
+	if(num<103 && num>96){
+		return num-87;}
+	return num;}
+
+//read transactions and put them in an unformatted way to final_hex
+void readtrans(unsigned char final_hex[FILELEN/2]){
+	FILE *fp = fopen("blocktransactions.txt","r");
+	unsigned char c1,c2;
+	int i=0;
+	unsigned char sum;
+		for(i=0;i<FILELEN/2;i++){
+			c1=ascii2hex(fgetc(fp));
+			c2=ascii2hex(fgetc(fp));
+			sum = c1<<4 | c2;
+			final_hex[i] = sum;}
+	fclose(fp);}
+
+//format the unformatted transactions
+void separate(int db, unsigned char f_h[32768], unsigned char tr[1024][32]){
+	int i,j;
+	for(i=0;i<db;i++){
+		for(j=0;j<32;j++){
+			tr[i][j] = f_h[i*33+j];}}}
 
 //read transaction hashes
 //now works only for fixt number, namely for 5 hash value
