@@ -28,16 +28,17 @@
 &Balázs Pejó \textit{(balazs.pejo@gmail.com)}\\
 &Máté Horváth \textit{(er.mate@gmail.com)}
 \end{tabular}
-\vspace{0.5cm}
 \section{Motivation}
 Bitcoin is an experimental, decentralized digital currency that enables instant payments to anyone, anywhere in the world. Bitcoin uses peer-to-peer technology to operate with no central authority: managing transactions and issuing money are carried out collectively by the network. Bitcoin is designed around the idea of using cryptography to control the creation and transfer of money, rather than relying on central authorities.
+
+\begin{center}
+\includegraphics[width=10cm]{blockchainsize.jpg}
+\end{center}
 
 However, Bitcoin requires that every node stores the entire ledger and broadcasts every transaction to every node. This limits the scalability of the system and also constitutes an entry barrier: it takes many hours for a new installation to download the entire block chain (which is how the transaction ledger is called in Bitcoin terminology). Except for the most expensive models, cellphones do not have the storage capacity to store all the transactions and it is also often prohibitively expensive in terms of mobile communication to maintain a bitcoin network node on a cellphone. At present, this implies that mobile devices and other low-power computers must trust one or more nodes
 on the bitcoin network which is slowly but surely turning into a centralized structure quite out of line with its original ethos.
 
 On the other hand, Bitcoin's design includes several features that seem to be aimed at decentralization, allowing nodes to hold only partial copies of the block chain and still not trust other nodes for verifying its integrity regarding transactions and accounts of interest. The goal of this project is to design and maybe prototype such decentralization.
-
-\newpage
 
 \section{Background}
 
@@ -49,23 +50,18 @@ Transactions in each block of the block chain are hashed in a so-called Merkle t
 
 \begin{center}
 \includegraphics[width=8cm]{mroot.jpg}
+\includegraphics[width=4cm]{branch.jpg}
 \end{center}
 
-Every transaction has a hash associated with it. In a block, all of the transaction hashes in the block are themselves hashed (sometimes several times - the exact process is complex), and the result is the Merkle root. In other words, the Merkle root is the hash of all the hashes of all the transactions in the block. The Merkle root is included in the block header. With this scheme, it is possible to securely verify that a transaction has
-been accepted by the network (and get the number of confirmations) by downloading just the tiny block headers and Merkle tree - downloading the entire block chain is unnecessary. This feature is currently not used in Bitcoin, but it will be in the future.
+Every transaction has a hash associated with it. In a block, all of the transaction hashes in the block are themselves hashed (sometimes several times - the exact process is complex), and the result is the Merkle root. In other words, the Merkle root is the hash of all the hashes of all the transactions in the block. 
 
-Each node is particularly and primarily interested in transactions that concern the
-accounts that are controlled by their operators, perhaps some watched accounts (such
-as those of counterparties). It needs to verify that all the transactions preceding them
-beginning with emission (mining) have been arithmetically correct and that no double
-spending has been attempted. It may also verify random transactions as a means of
+The Merkle root is included in the block header. With this scheme, it is possible to securely verify that a transaction has been accepted by the network (and get the number of confirmations) by downloading just the tiny block headers and Merkle tree - downloading the entire block chain is unnecessary. This feature is currently not used in Bitcoin, but it will be in the future.
+
+Each node is particularly and primarily interested in transactions that concern the accounts that are controlled by their operators, perhaps some watched accounts (such as those of counterparties). It needs to verify that all the transactions preceding them beginning with emission (mining) have been arithmetically correct and that no double spending has been attempted. It may also verify random transactions as a means of
 spot-checking the network.
-
-\newpage
 
 \section{Solution}
 The solution is a simplified Bitcoin client that doesn't store all the transaction and the blockchain, only transactions that are relevant to the wallet are stored. Every other transaction is thrown away or simply never downloaded. The block chain is still used and broadcast transactions are still received, but those transactions are not and cannot be checked to ensure they are valid. This mode of operation is fast and lightweight enough to be run on a smartphone.
-
 
 \subsection{Details}
 Each balance is simply associated with an address and its public-private key pair. The money "belongs" to anyone who has the private key and can sign transactions with it. Moreover, those keys do not have to be registered anywhere in advance, as they are only used when required for a transaction. Each person can have many such addresses, each with its own balance, which makes it very difficult to know which person owns what amount. For instance, Bob can generate a new public-private key pair for each individual receiving transaction in order to protect his privacy. The Bitcoin software encourages this behavior by default.
@@ -160,20 +156,30 @@ Nodes can store some other transactions as well so that attackers won't know whi
 
 %Nos ezt nem tudom h mennyire működik így jól, de lényegében a bitcoinj is ezt csinálja, szóval szerintem elfogadható
 
-Nos ide jöhet egy kis számítgatás arról, hogy hány ilyen lightweight kiliens esetén válthatunk át a fent leírt rendszerre. A számítás menete a következő lenne: ha jól számolom a hash értéke összesen $2^{128}-1$-féle lehet. Mi azt szeretnénk hogy egy kliens ne tároljon aránytalanul sok infót a többiekhez képest. A uniform distr. miatt mindenki kb a tranzakciók $n$-edrészét tárolja, ha $n$ kliens van. Tegyük fel hogy akkor van baj ha valaki mondjuk egy y hosszú szakaszról tárol minden infót (ennél rövidebb szakaszról még gond nélkül eltárolja, de ez már túl sok). Akkor annak a vsz-e hogy egy kliens enyi infót tárol az megeygezik annak a vsz-ével, hogy az ő hash-e felvesz egy értéket és az utána következő y értéket más kliens hash-e nem veszi fel:
+\subsection{Numbers}
 
-$$\mathbb{P}(\text{y hosszú szakaszról tárol egy kliens})=\left(\frac{2^{128}-1-y}{2^{128}-1}\right)^{n-1}$$
+%Nos ide jöhet egy kis számítgatás arról, hogy hány ilyen lightweight kiliens esetén válthatunk át a fent leírt rendszerre. 
+
+Lets take a look at the required memory capacity from a smart device:
+\begin{itemize}
+	\item All block headers must be stored in all device: 80 byte each header, and there are already around 283 thousand block. It means around 21 megabyte. 
+	\item There are around 32 million transaction. The blocks are around 13 gigabyte, and since the headers are negligible, one transaction is around 436 byte. 
+	\item If there are $n$ users, than each of them must store $\frac{32M}{n}436$ byte plus 21 megabyte header information. 
+\begin{itemize}
+	\item If $n=1000$, than they must store $13.3+21=34.3$ megabyte. 
+	\item If $n=10000$, than they must store $1.3+21=22.3$ megabyte. 
+\end{itemize}
+\end{itemize}
+
+There are $2^{128}-1$ different hash value. We would like to avoid that one client store more data that it can handle. Since SHA-256 distribute the IP addresses uniformly, each client will be responsible for $\frac1n$ large fragment if there are $n$ client. Let say, the memory boundary is $y$, so we would like to avoid that a client needs to handle larger fragment than $y$. The probability of this equal with the probability of its hash are more than $y$ distance from its successor client's hash, formally
+$$\Pr(\text{a client will store larger fragment than $y$})=\left(\frac{2^{128}-1-y}{2^{128}-1}\right)^{n-1}$$
 
 Ha meg tudjuk határozni y értékét, akkor tetszőleges valószínűség mellé meg lehet mondani, hogy milyen nagy n-nél érdemes átállni erre a DHT-s dologra. Ehhez tudni kéne hogy mondjuk egy smartphone-os bitcoin-os alkalmazásnál kb mennyi adatot tárolhatna el az alkalmazás a telefonon. Az eltárolt adatok a block header-ekből és a tranzakciókból állnak. Az eddigi összes blockheader méretét ha megkeressük plusz hogy mekkora egy tranzakció, akkor abból tudni fogjuk hogy hány tranzakciót tárolhat egy client hozávetőlegesen. A tárolható tranzakciók számából meghatározható y (a számolásnál a saját tranzakciók tárolását tekinthetjük sztem elhanyagolható méretűnek, mert az egész hálózat méretéhez képest valóban elhanyagolható. de itt tehetünk fel egyéb dolgokat is a saját tranzakciók méretéről, pl valahogy átlagolhatnánk-nem tudom hogy- és egy konstans értéket rendelünk hozzá). Ha megvan y, akkor lehet kijelentéseket tenni n-re, grafikonokat rajzolni, ilyenek.
-
-Úgyhogy ehhez jó lenne valami számszerű adatokat találni.
 
 \subsection{}
 Further problems: avoid double spending, attacks, level of trust in other nodes
 
 %ezeket a dolgokat át kéne gondolni, hogy miért nem lehetséges duoble spend, milyen támadások lehetnek, blablabla... 
-
-
 
 \newpage
 \begin{thebibliography}{9}
