@@ -135,7 +135,7 @@ void sha256_final(SHA256_CTX *ctx, uchar hash[]){
       hash[i+24] = (ctx->state[6] >> (24-i*8)) & 0x000000ff;
       hash[i+28] = (ctx->state[7] >> (24-i*8)) & 0x000000ff;}}
 
-//print the 02X values for a hash string
+//print the 02x values for a hash
 void print_hash(unsigned char hash[32]){
    int idx;
    for (idx=0; idx < 32; idx++)
