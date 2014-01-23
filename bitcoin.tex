@@ -158,6 +158,8 @@ First step: the DHT method works only if there's a sufficiently large network of
 
 Nodes can store some other transactions as well so that attackers won't know which transactions belong to them.
 
+%Nos ezt nem tudom h mennyire működik így jól, de lényegében a bitcoinj is ezt csinálja, szóval szerintem elfogadható
+
 Nos ide jöhet egy kis számítgatás arról, hogy hány ilyen lightweight kiliens esetén válthatunk át a fent leírt rendszerre. A számítás menete a következő lenne: ha jól számolom a hash értéke összesen $2^{128}-1$-féle lehet. Mi azt szeretnénk hogy egy kliens ne tároljon aránytalanul sok infót a többiekhez képest. A uniform distr. miatt mindenki kb a tranzakciók $n$-edrészét tárolja, ha $n$ kliens van. Tegyük fel hogy akkor van baj ha valaki mondjuk egy y hosszú szakaszról tárol minden infót (ennél rövidebb szakaszról még gond nélkül eltárolja, de ez már túl sok). Akkor annak a vsz-e hogy egy kliens enyi infót tárol az megeygezik annak a vsz-ével, hogy az ő hash-e felvesz egy értéket és az utána következő y értéket más kliens hash-e nem veszi fel:
 
 $$\mathbb{P}(\text{y hosszú szakaszról tárol egy kliens})=\left(\frac{2^{128}-1-y}{2^{128}-1}\right)^{n-1}$$
@@ -165,8 +167,6 @@ $$\mathbb{P}(\text{y hosszú szakaszról tárol egy kliens})=\left(\frac{2^{128}
 Ha meg tudjuk határozni y értékét, akkor tetszőleges valószínűség mellé meg lehet mondani, hogy milyen nagy n-nél érdemes átállni erre a DHT-s dologra. Ehhez tudni kéne hogy mondjuk egy smartphone-os bitcoin-os alkalmazásnál kb mennyi adatot tárolhatna el az alkalmazás a telefonon. Az eltárolt adatok a block header-ekből és a tranzakciókból állnak. Az eddigi összes blockheader méretét ha megkeressük plusz hogy mekkora egy tranzakció, akkor abból tudni fogjuk hogy hány tranzakciót tárolhat egy client hozávetőlegesen. A tárolható tranzakciók számából meghatározható y (a számolásnál a saját tranzakciók tárolását tekinthetjük sztem elhanyagolható méretűnek, mert az egész hálózat méretéhez képest valóban elhanyagolható. de itt tehetünk fel egyéb dolgokat is a saját tranzakciók méretéről, pl valahogy átlagolhatnánk-nem tudom hogy- és egy konstans értéket rendelünk hozzá). Ha megvan y, akkor lehet kijelentéseket tenni n-re, grafikonokat rajzolni, ilyenek.
 
 Úgyhogy ehhez jó lenne valami számszerű adatokat találni.
-
-%Nos ezt nem tudom h mennyire működik így jól, de lényegében a bitcoinj is ezt csinálja, szóval szerintem elfogadható
 
 \subsection{}
 Further problems: avoid double spending, attacks, level of trust in other nodes
