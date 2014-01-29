@@ -1,17 +1,16 @@
-﻿tex file írása
-txt -ből való tetszőleseg sok karakterbeolvasás amiket használható hex-é alakítunk
-	ezt átirni olyanra, hogy adott hosszú bemenethez gyártja le a neki megfelelő dupla hexes listát (pl (e,a,c,4,5,d)->(ea,c4,5d)) !!!
-funkciók
-	adott tranzakció adatai
-		adott címről-címre való utalás van-e
-		mekkor az adott címről-címre való utalások összege
-			az a baj, hogy a raw blokkban nincsenek címek, csak publikus kulcsok
-	block ellenőrzés
-		első tranzakció coinbase
-		a többi nem az 
-		proof of work, azaz a hash tényleg a block hash -je-e
-			https://en.bitcoin.it/wiki/Block_hashing_algorithm
-			kéne egy olyan program, ami egy számlistához hozzárendeli a számot (KÉSZ)
-				kéne egy olyan program, ami egy számhoz hozzárendeli a neki megfelelő fix hosszú (4) hexa listát (pl 3=(00,00,00,03)) !!!
-			kéne egy olyan program, ami összekonkatenálja a dolgokat (KÉSZ)
-			kéne egy olyan program, ami kiszámolja a hashjét midennek (KÉSZ)
+﻿The program cannot communicate the P2P network, so currently it gets the raw block from a txt file. 
+It can check the validity of the block, by
+	checking the Merkle root
+		it prints the root from the block
+		it generate and prints the root from the transactions
+		do not compare the two value
+	checking the coinbase transaction
+		count how many are in the block
+		do not check that the first one is a coinbase 
+	checking the blockhash
+		it prints the block hash from the raw block
+		it does not hash the header
+It can check a transaction by
+	generating its Merkle branch for it
+
+There are no error propagation at all. 

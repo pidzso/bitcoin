@@ -302,15 +302,13 @@ stage2b:
 	printf("\tThe merkel branch for a transaction! (2)\n");
 	a=getch();
 	if(a=='2'){
-		printf("Please put the raw bloch which contains the transaction into raw.txt and put the transaction itself into transaction.txt!\n");
+		printf("Please put the raw bloch which contains the transaction into raw.txt and put the transaction's hash value into transaction.txt!\n");
 		printf("If you done with it, please press anything!\n");
 		b=getch();
 		goto mbranch;}
 	else if(a=='1'){
-		printf("Please put the public key to the publickey.txt!\n");
-		printf("If you done with it, please press anything!\n");
-		b=getch();
-		goto trans;}
+		printf("This function is temporaty not avalible!\n");
+		goto stage3;}
 	else {
 		printf("This option was not offered!\n");
 		goto stage2b;}
@@ -333,9 +331,15 @@ verify:
 	printf("\n");
 	printf("Coinbase transaction checking...\n");
 	//checked the number of the coinbase transactions in the block
-	//MISSING: it should check that this transaction is the first
 	coinbase();
 	printf("Number of coinbase transactions: %d\n", cbnum);
+	printf("Blockhash checking...\n");
+	printf("The blockhash from the raw file:\n");
+	for(i=0;i<64;i++){
+		printf("%x",blkhash[i]);}
+	printf("\nThe generated hash file:\n");
+	//MISING: hashhing the blockheader
+		printf("This function is temporaty not avalible!\n");
 	goto stage3;
 mbranch:
 	printf("Branch generation in progress...\n");
@@ -346,8 +350,11 @@ mbranch:
 	position(input, number, input[pstn], pstn);
 	mbranch(input, number, br, rol, pstn+1);
 	for(i=0;i<3;i++){
-		print_hash(br[i]);
-		printf("%d\n",rol[i]);}
+		if(rol[i]==1){
+			printf("The %d step: Concatenate the following hash with the previous result!\n",i+1);}
+		else {
+			printf("The %d step: Concatenate the previous result with the following hash!\n",i+1);}
+		print_hash(br[i]);}
 	goto stage3;
 trans:
 	printf("Checking in progress...\n");
