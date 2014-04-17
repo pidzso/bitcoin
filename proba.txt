@@ -1,9 +1,1 @@
-Kedves Szilárd!
-A szteganográfiás rész elméletét kidolgoztam, már csak a dokumentáció hiányzik. Az implementáció is
- megvan pythonban, ez fájlból olvas, és egy szótár segítségével egy másik fájlba ír. Ennek a Zorpba
- való beintegrálásához viszont szükségem lenne a segítségedre. Ami a Lacinak fut a Zorp-pal
- kapcsolatban az nekem nem.
-Be tudnék menni valamikor feltenni a Zorpos kérdéseimet?
-
-Köszi!
-Réka
+Ke
